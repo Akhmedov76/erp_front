@@ -72,6 +72,8 @@ export interface BulkGradeInput {
 
 export type GenericStatus = "ACTIVE" | "INACTIVE";
 
+export type AssignmentType = "HOMEWORK" | "QUIZ" | "EXAM" | "PROJECT";
+
 export interface Assignment {
   id: string;
   teacher: string;
@@ -82,6 +84,7 @@ export interface Assignment {
   subjectName: string;
   title: string;
   description: string;
+  assignment_type: AssignmentType;
   deadline: string;
   attachment: string | null;
   status: GenericStatus;
@@ -95,6 +98,7 @@ export interface AssignmentInput {
   subject: string;
   title: string;
   description?: string;
+  assignment_type: AssignmentType;
   deadline: string;
   status?: GenericStatus;
 }

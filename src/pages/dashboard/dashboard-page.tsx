@@ -32,6 +32,7 @@ import { useSchedules } from "@/hooks/api/use-schedules";
 import { useStudents } from "@/hooks/api/use-students";
 import { ROLES } from "@/lib/constants";
 import { formatDate, formatDateTime, formatMoney } from "@/lib/utils";
+import { AssignmentTypeBadge } from "@/pages/assignments/assignment-type-badge";
 import { useAuthStore } from "@/stores/auth-store";
 
 export default function DashboardPage() {
@@ -319,8 +320,9 @@ function StudentDashboard() {
                   {upcomingAssignments.items.map((a) => (
                     <TableRow key={a.id} className="cursor-pointer">
                       <TableCell>
-                        <Link to={`/assignments/${a.id}`} className="hover:underline">
-                          {a.title}
+                        <Link to={`/assignments/${a.id}`} className="flex items-center gap-2">
+                          <span className="hover:underline">{a.title}</span>
+                          <AssignmentTypeBadge type={a.assignment_type} />
                         </Link>
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">{formatDateTime(a.deadline)}</TableCell>

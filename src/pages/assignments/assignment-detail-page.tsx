@@ -23,6 +23,7 @@ import { formatDateTime, getErrorMessage } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import type { AssignmentSubmission } from "@/types/records";
 import { AssignmentFormDialog } from "@/pages/assignments/assignment-form-dialog";
+import { AssignmentTypeBadge } from "@/pages/assignments/assignment-type-badge";
 import { GradeSubmissionDialog } from "@/pages/assignments/grade-submission-dialog";
 
 // Ungraded work belongs at the top of the teacher's queue; within each group,
@@ -90,6 +91,7 @@ export default function AssignmentDetailPage() {
         <CardContent className="space-y-3 pt-6 text-sm">
           {assignment.description && <p className="whitespace-pre-wrap">{assignment.description}</p>}
           <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
+            <AssignmentTypeBadge type={assignment.assignment_type} />
             <span>Muddat: {formatDateTime(assignment.deadline)}</span>
             <StatusBadge status={assignment.status} />
             {assignment.attachment && (
@@ -112,7 +114,10 @@ export default function AssignmentDetailPage() {
       {canManage && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Topshirilgan ishlar ({sortedSubmissions.length})</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base">Topshirilgan ishlar ({sortedSubmissions.length})</CardTitle>
+              <AssignmentTypeBadge type={assignment.assignment_type} />
+            </div>
             {sortedSubmissions.length > 0 && (
               <CardDescription>
                 {ungradedCount > 0 ? `${ungradedCount} tasi baholanmagan` : "Barchasi baholangan"}
@@ -208,6 +213,7 @@ export default function AssignmentDetailPage() {
           open={Boolean(gradingSubmission)}
           onOpenChange={(open) => !open && setGradingSubmission(undefined)}
           submission={gradingSubmission}
+          assignmentType={assignment.assignment_type}
         />
       )}
     </div>

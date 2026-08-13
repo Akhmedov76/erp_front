@@ -13,7 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { InlineSpinner } from "@/components/common/page-loader";
 import { useGradeSubmission } from "@/hooks/api/use-assignments";
 import { getErrorMessage } from "@/lib/utils";
-import type { AssignmentSubmission } from "@/types/records";
+import { AssignmentTypeBadge } from "@/pages/assignments/assignment-type-badge";
+import type { AssignmentSubmission, AssignmentType } from "@/types/records";
 
 const schema = z.object({
   score: z.coerce.number().nonnegative("Ball manfiy bo'lmasligi kerak"),
@@ -26,9 +27,10 @@ interface GradeSubmissionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   submission?: AssignmentSubmission;
+  assignmentType?: AssignmentType;
 }
 
-export function GradeSubmissionDialog({ open, onOpenChange, submission }: GradeSubmissionDialogProps) {
+export function GradeSubmissionDialog({ open, onOpenChange, submission, assignmentType }: GradeSubmissionDialogProps) {
   const gradeSubmission = useGradeSubmission();
 
   const form = useForm<FormValues>({
@@ -60,7 +62,10 @@ export function GradeSubmissionDialog({ open, onOpenChange, submission }: GradeS
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{submission?.studentName} — topshiriqni baholash</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {submission?.studentName} — topshiriqni baholash
+            {assignmentType && <AssignmentTypeBadge type={assignmentType} />}
+          </DialogTitle>
         </DialogHeader>
         {submission?.file && (
           <a

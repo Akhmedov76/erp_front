@@ -28,6 +28,17 @@ export const TEACHER_STATUS_OPTIONS = [
   { value: "INACTIVE", label: "Nofaol" },
 ];
 
+export const ASSIGNMENT_TYPE_OPTIONS = [
+  { value: "HOMEWORK", label: "Uy vazifasi" },
+  { value: "QUIZ", label: "Nazorat ishi" },
+  { value: "EXAM", label: "Imtihon" },
+  { value: "PROJECT", label: "Loyiha" },
+];
+
+export const ASSIGNMENT_TYPE_LABELS: Record<string, string> = Object.fromEntries(
+  ASSIGNMENT_TYPE_OPTIONS.map((opt) => [opt.value, opt.label]),
+);
+
 export const GENERIC_STATUS_OPTIONS = [
   { value: "ACTIVE", label: "Faol" },
   { value: "INACTIVE", label: "Nofaol" },

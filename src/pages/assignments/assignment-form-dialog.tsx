@@ -16,7 +16,7 @@ import { useCreateAssignment, useUpdateAssignment } from "@/hooks/api/use-assign
 import { useGroups } from "@/hooks/api/use-groups";
 import { useSubjects } from "@/hooks/api/use-subjects";
 import { useTeachers } from "@/hooks/api/use-teachers";
-import { ROLES } from "@/lib/constants";
+import { ASSIGNMENT_TYPE_OPTIONS, ROLES } from "@/lib/constants";
 import { getErrorMessage } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import type { Assignment } from "@/types/records";
@@ -27,6 +27,9 @@ const schema = z.object({
   subject: z.string().min(1, "Fan tanlanishi shart"),
   title: z.string().min(1, "Sarlavha kiritilishi shart"),
   description: z.string().optional(),
+  assignment_type: z.enum(["HOMEWORK", "QUIZ", "EXAM", "PROJECT"], {
+    required_error: "Topshiriq turi tanlanishi shart",
+  }),
   deadline: z.string().min(1, "Muddat kiritilishi shart"),
 });
 
@@ -59,7 +62,15 @@ export function AssignmentFormDialog({ open, onOpenChange, assignment }: Assignm
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { teacher: "", group: "", subject: "", title: "", description: "", deadline: "" },
+    defaultValues: {
+      teacher: "",
+      group: "",
+      subject: "",
+      title: "",
+      description: "",
+      assignment_type: "HOMEWORK",
+      deadline: "",
+    },
   });
 
   useEffect(() => {
@@ -72,10 +83,19 @@ export function AssignmentFormDialog({ open, onOpenChange, assignment }: Assignm
         subject: assignment.subject,
         title: assignment.title,
         description: assignment.description,
+        assignment_type: assignment.assignment_type,
         deadline: assignment.deadline.slice(0, 16),
       });
     } else {
-      form.reset({ teacher: isTeacher ? (ownTeacherId ?? "") : "", group: "", subject: "", title: "", description: "", deadline: "" });
+      form.reset({
+        teacher: isTeacher ? (ownTeacherId ?? "") : "",
+        group: "",
+        subject: "",
+        title: "",
+        description: "",
+        assignment_type: "HOMEWORK",
+        deadline: "",
+      });
     }
   }, [open, assignment, isTeacher, ownTeacherId, form]);
 
@@ -117,6 +137,30 @@ export function AssignmentFormDialog({ open, onOpenChange, assignment }: Assignm
               )}
             />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="assignment_type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Turi</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Turini tanlang" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {ASSIGNMENT_TYPE_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="group"

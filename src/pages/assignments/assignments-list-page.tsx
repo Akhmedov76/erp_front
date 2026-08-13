@@ -10,25 +10,33 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAssignments, useDeleteAssignment } from "@/hooks/api/use-assignments";
 import { useListQueryState } from "@/hooks/use-list-query-state";
-import { ROLES } from "@/lib/constants";
+import { ASSIGNMENT_TYPE_OPTIONS, ROLES } from "@/lib/constants";
 import { formatDateTime, getErrorMessage } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import type { Assignment } from "@/types/records";
 import { AssignmentFormDialog } from "@/pages/assignments/assignment-form-dialog";
+import { AssignmentTypeBadge } from "@/pages/assignments/assignment-type-badge";
 
 export default function AssignmentsListPage() {
   const navigate = useNavigate();
   const role = useAuthStore((state) => state.user?.role);
   const canManage = role === ROLES.SUPERADMIN || role === ROLES.TEACHER;
-  const { page, setPage, search, setSearch, params } = useListQueryState();
+  const [assignmentType, setAssignmentType] = useState<string>("");
+  const { page, setPage, search, setSearch, params } = useListQueryState({ assignment_type: assignmentType });
   const { data, isLoading } = useAssignments(params);
   const deleteAssignment = useDeleteAssignment();
   const [formOpen, setFormOpen] = useState(false);
 
   const columns: ColumnDef<Assignment, unknown>[] = [
     { accessorKey: "title", header: "Sarlavha" },
+    {
+      accessorKey: "assignment_type",
+      header: "Turi",
+      cell: ({ row }) => <AssignmentTypeBadge type={row.original.assignment_type} />,
+    },
     { accessorKey: "groupName", header: "Guruh" },
     { accessorKey: "subjectName", header: "Fan" },
     { accessorKey: "deadline", header: "Muddat", cell: ({ row }) => formatDateTime(row.original.deadline) },
@@ -75,7 +83,26 @@ export default function AssignmentsListPage() {
           ) : undefined
         }
       />
-      <DataTableToolbar searchValue={search} onSearchChange={setSearch} searchPlaceholder="Sarlavha bo'yicha qidirish..." />
+      <DataTableToolbar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Sarlavha bo'yicha qidirish..."
+        filters={
+          <Select value={assignmentType || "ALL"} onValueChange={(v) => setAssignmentType(v === "ALL" ? "" : v)}>
+            <SelectTrigger className="w-full sm:w-44">
+              <SelectValue placeholder="Turi" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Barcha turlar</SelectItem>
+              {ASSIGNMENT_TYPE_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        }
+      />
       <DataTable
         columns={columns}
         data={data?.items ?? []}
