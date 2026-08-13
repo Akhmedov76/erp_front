@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, LogOut, Menu, User as UserIcon } from "lucide-react";
+import { Bell, Laptop, LogOut, Menu, Moon, Sun, User as UserIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { SidebarNav } from "@/components/layout/sidebar-nav";
@@ -11,6 +11,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -18,8 +20,44 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useLogout } from "@/hooks/api/use-auth";
 import { useUnreadNotifications } from "@/hooks/api/use-notifications";
 import { ROLE_LABELS } from "@/lib/constants";
+import { resolveTheme } from "@/lib/theme";
 import { formatDateTime, initials } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
+import { useThemeStore, type Theme } from "@/stores/theme-store";
+
+const THEME_OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
+  { value: "light", label: "Kunduzgi", icon: Sun },
+  { value: "dark", label: "Tungi", icon: Moon },
+  { value: "system", label: "Tizim bo'yicha", icon: Laptop },
+];
+
+function ThemeToggle() {
+  const theme = useThemeStore((state) => state.theme);
+  const setTheme = useThemeStore((state) => state.setTheme);
+  const ResolvedIcon = resolveTheme(theme) === "dark" ? Moon : Sun;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <ResolvedIcon className="h-5 w-5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>Ko'rinish</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuRadioGroup value={theme} onValueChange={(value) => setTheme(value as Theme)}>
+          {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+            <DropdownMenuRadioItem key={value} value={value} className="gap-2">
+              <Icon className="h-4 w-4" />
+              {label}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 export function Topbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -48,6 +86,8 @@ export function Topbar() {
       </Sheet>
 
       <div className="flex-1" />
+
+      <ThemeToggle />
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
