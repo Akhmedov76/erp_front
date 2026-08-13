@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, Plus } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { PageHeader } from "@/components/common/page-header";
@@ -13,11 +13,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/common/empty-state";
 import { useAttendanceList } from "@/hooks/api/use-attendance";
 import { useGrades } from "@/hooks/api/use-grades";
+import { useGroups } from "@/hooks/api/use-groups";
 import { useStudent, useStudentPayments } from "@/hooks/api/use-students";
 import { ROLES } from "@/lib/constants";
 import { formatDate, formatMoney, initials } from "@/lib/utils";
-import { useAuthStore } from "@/stores/auth-store";
+import { AddToGroupDialog } from "@/pages/students/add-to-group-dialog";
 import { StudentFormDialog } from "@/pages/students/student-form-dialog";
+import { useAuthStore } from "@/stores/auth-store";
 
 export default function StudentDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -25,11 +27,13 @@ export default function StudentDetailPage() {
   const role = useAuthStore((state) => state.user?.role);
   const isSuperAdmin = role === ROLES.SUPERADMIN;
   const [editOpen, setEditOpen] = useState(false);
+  const [addGroupOpen, setAddGroupOpen] = useState(false);
 
   const { data: student, isLoading } = useStudent(id);
   const { data: grades } = useGrades({ student_id: id, limit: 10 });
   const { data: attendance } = useAttendanceList({ student_id: id, limit: 10 });
   const { data: payments } = useStudentPayments(id, { limit: 10 });
+  const { data: groups } = useGroups({ student_id: id, limit: 50 });
 
   if (isLoading || !student) return <PageLoader />;
 
@@ -81,6 +85,7 @@ export default function StudentDetailPage() {
             <TabsList>
               <TabsTrigger value="grades">Baholar</TabsTrigger>
               <TabsTrigger value="attendance">Davomat</TabsTrigger>
+              <TabsTrigger value="groups">Guruhlar</TabsTrigger>
               {isSuperAdmin && <TabsTrigger value="payments">To'lovlar</TabsTrigger>}
             </TabsList>
 
@@ -148,6 +153,48 @@ export default function StudentDetailPage() {
               </Card>
             </TabsContent>
 
+            <TabsContent value="groups">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                  <CardTitle className="text-base">A'zo guruhlari</CardTitle>
+                  {isSuperAdmin && (
+                    <Button size="sm" onClick={() => setAddGroupOpen(true)}>
+                      <Plus className="h-4 w-4" />
+                      Guruhga qo'shish
+                    </Button>
+                  )}
+                </CardHeader>
+                <CardContent className="p-0">
+                  {groups?.items.length ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Guruh</TableHead>
+                          <TableHead>Kurs</TableHead>
+                          <TableHead>O'qituvchi</TableHead>
+                          <TableHead>Holati</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {groups.items.map((g) => (
+                          <TableRow key={g.id} className="cursor-pointer" onClick={() => navigate(`/groups/${g.id}`)}>
+                            <TableCell>{g.name}</TableCell>
+                            <TableCell>{g.courseName}</TableCell>
+                            <TableCell>{g.teacherName ?? "—"}</TableCell>
+                            <TableCell>
+                              <StatusBadge status={g.status} />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <EmptyState title="Hech qanday guruhga a'zo emas" />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             {isSuperAdmin && (
               <TabsContent value="payments">
                 <Card>
@@ -187,6 +234,14 @@ export default function StudentDetailPage() {
       </div>
 
       {isSuperAdmin && <StudentFormDialog open={editOpen} onOpenChange={setEditOpen} student={student} />}
+      {isSuperAdmin && id && (
+        <AddToGroupDialog
+          open={addGroupOpen}
+          onOpenChange={setAddGroupOpen}
+          studentId={id}
+          currentGroupIds={groups?.items.map((g) => g.id) ?? []}
+        />
+      )}
     </div>
   );
 }

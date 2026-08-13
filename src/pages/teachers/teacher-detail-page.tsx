@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, Plus } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { PageHeader } from "@/components/common/page-header";
@@ -13,13 +13,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useGroups } from "@/hooks/api/use-groups";
 import { useSubjects } from "@/hooks/api/use-subjects";
 import { useTeacher } from "@/hooks/api/use-teachers";
+import { ROLES } from "@/lib/constants";
 import { formatDate, formatMoney, initials } from "@/lib/utils";
+import { AssignGroupDialog } from "@/pages/teachers/assign-group-dialog";
 import { TeacherFormDialog } from "@/pages/teachers/teacher-form-dialog";
+import { useAuthStore } from "@/stores/auth-store";
 
 export default function TeacherDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const isSuperAdmin = useAuthStore((state) => state.user?.role) === ROLES.SUPERADMIN;
   const [editOpen, setEditOpen] = useState(false);
+  const [assignGroupOpen, setAssignGroupOpen] = useState(false);
 
   const { data: teacher, isLoading } = useTeacher(id);
   const { data: subjects } = useSubjects({ teacher_id: id, limit: 50 });
@@ -95,8 +100,14 @@ export default function TeacherDetailPage() {
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <CardTitle className="text-base">Guruhlar</CardTitle>
+              {isSuperAdmin && (
+                <Button size="sm" onClick={() => setAssignGroupOpen(true)}>
+                  <Plus className="h-4 w-4" />
+                  Guruhga biriktirish
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="p-0">
               {groups?.items.length ? (
@@ -129,6 +140,14 @@ export default function TeacherDetailPage() {
       </div>
 
       <TeacherFormDialog open={editOpen} onOpenChange={setEditOpen} teacher={teacher} />
+      {isSuperAdmin && id && (
+        <AssignGroupDialog
+          open={assignGroupOpen}
+          onOpenChange={setAssignGroupOpen}
+          teacherId={id}
+          currentGroupIds={groups?.items.map((g) => g.id) ?? []}
+        />
+      )}
     </div>
   );
 }

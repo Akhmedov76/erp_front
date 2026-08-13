@@ -32,6 +32,18 @@ export function useAddGroupStudent(groupId: string) {
   });
 }
 
+/** Same endpoint as useAddGroupStudent, but for flows where the student is
+ * fixed and the group is picked at call time (e.g. "add this student to
+ * another group" from their own profile) rather than the other way round. */
+export function useAddStudentToGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ groupId, studentId }: { groupId: string; studentId: string }) =>
+      apiPost(`/groups/${groupId}/students`, { studentId }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["groups"] }),
+  });
+}
+
 export function useRemoveGroupStudent(groupId: string) {
   const queryClient = useQueryClient();
   return useMutation({
