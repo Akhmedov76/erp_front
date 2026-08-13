@@ -113,6 +113,7 @@ export interface AssignmentSubmission {
   status: SubmissionStatus;
   submitted_at: string | null;
   graded_at: string | null;
+  resubmission_allowed: boolean;
 }
 
 export interface GradeSubmissionInput {

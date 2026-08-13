@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { FileText } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -61,6 +62,17 @@ export function GradeSubmissionDialog({ open, onOpenChange, submission }: GradeS
         <DialogHeader>
           <DialogTitle>{submission?.studentName} — topshiriqni baholash</DialogTitle>
         </DialogHeader>
+        {submission?.file && (
+          <a
+            href={submission.file}
+            target="_blank"
+            rel="noreferrer"
+            className="flex w-fit items-center gap-1.5 rounded-md border px-3 py-2 text-sm text-primary hover:underline"
+          >
+            <FileText className="h-4 w-4" />
+            Topshirilgan faylni ko'rish
+          </a>
+        )}
         {submission?.comment && (
           <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">"{submission.comment}"</p>
         )}

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ArrowLeft, Paperclip, Pencil } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowLeft, FileText, MessageSquare, Paperclip, Pencil, RotateCcw } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -8,16 +8,34 @@ import { PageHeader } from "@/components/common/page-header";
 import { PageLoader, InlineSpinner } from "@/components/common/page-loader";
 import { StatusBadge } from "@/components/common/status-badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useAssignment, useAssignmentSubmissions, useSubmitAssignment } from "@/hooks/api/use-assignments";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  useAllowResubmission,
+  useAssignment,
+  useAssignmentSubmissions,
+  useSubmitAssignment,
+} from "@/hooks/api/use-assignments";
 import { ROLES } from "@/lib/constants";
 import { formatDateTime, getErrorMessage } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import type { AssignmentSubmission } from "@/types/records";
 import { AssignmentFormDialog } from "@/pages/assignments/assignment-form-dialog";
 import { GradeSubmissionDialog } from "@/pages/assignments/grade-submission-dialog";
+
+// Ungraded work belongs at the top of the teacher's queue; within each group,
+// the most recently submitted work surfaces first.
+const STATUS_PRIORITY: Record<string, number> = { SUBMITTED: 0, LATE: 0, PENDING: 0, GRADED: 1 };
+
+function sortForGrading(items: AssignmentSubmission[]) {
+  return [...items].sort((a, b) => {
+    const byStatus = (STATUS_PRIORITY[a.status] ?? 0) - (STATUS_PRIORITY[b.status] ?? 0);
+    if (byStatus !== 0) return byStatus;
+    return (b.submitted_at ?? "").localeCompare(a.submitted_at ?? "");
+  });
+}
 
 export default function AssignmentDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -28,11 +46,25 @@ export default function AssignmentDetailPage() {
 
   const { data: assignment, isLoading } = useAssignment(id);
   const { data: submissions } = useAssignmentSubmissions(canManage ? id : undefined, { limit: 100 });
+  const allowResubmission = useAllowResubmission();
 
   const [editOpen, setEditOpen] = useState(false);
   const [gradingSubmission, setGradingSubmission] = useState<AssignmentSubmission | undefined>();
 
+  const sortedSubmissions = useMemo(
+    () => (submissions?.items.length ? sortForGrading(submissions.items) : []),
+    [submissions],
+  );
+  const ungradedCount = sortedSubmissions.filter((s) => s.status !== "GRADED").length;
+
   if (isLoading || !assignment) return <PageLoader />;
+
+  const handleAllowResubmission = (submission: AssignmentSubmission) => {
+    allowResubmission.mutate(submission.id, {
+      onSuccess: () => toast.success(`${submission.studentName} uchun qayta topshirishga ruxsat berildi`),
+      onError: (error) => toast.error(getErrorMessage(error)),
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -80,33 +112,84 @@ export default function AssignmentDetailPage() {
       {canManage && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Topshirilgan ishlar ({submissions?.items.length ?? 0})</CardTitle>
+            <CardTitle className="text-base">Topshirilgan ishlar ({sortedSubmissions.length})</CardTitle>
+            {sortedSubmissions.length > 0 && (
+              <CardDescription>
+                {ungradedCount > 0 ? `${ungradedCount} tasi baholanmagan` : "Barchasi baholangan"}
+              </CardDescription>
+            )}
           </CardHeader>
           <CardContent className="p-0">
-            {submissions?.items.length ? (
+            {sortedSubmissions.length ? (
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>O'quvchi</TableHead>
                     <TableHead>Holati</TableHead>
                     <TableHead>Topshirilgan</TableHead>
+                    <TableHead>Fayl</TableHead>
                     <TableHead>Ball</TableHead>
                     <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {submissions.items.map((s) => (
+                  {sortedSubmissions.map((s) => (
                     <TableRow key={s.id}>
-                      <TableCell>{s.studentName}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          {s.studentName}
+                          {s.comment && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <MessageSquare className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">{s.comment}</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <StatusBadge status={s.status} />
                       </TableCell>
                       <TableCell>{s.submitted_at ? formatDateTime(s.submitted_at) : "—"}</TableCell>
+                      <TableCell>
+                        {s.file ? (
+                          <a
+                            href={s.file}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1 text-primary hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                            Ko'rish
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell>{s.score ?? "—"}</TableCell>
                       <TableCell>
-                        <Button variant="outline" size="sm" onClick={() => setGradingSubmission(s)}>
-                          Baholash
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          {!s.resubmission_allowed && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  disabled={allowResubmission.isPending}
+                                  onClick={() => handleAllowResubmission(s)}
+                                >
+                                  <RotateCcw className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Qayta topshirishga ruxsat berish</TooltipContent>
+                            </Tooltip>
+                          )}
+                          <Button variant="outline" size="sm" onClick={() => setGradingSubmission(s)}>
+                            Baholash
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

@@ -74,3 +74,11 @@ export function useGradeSubmission() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["assignments"] }),
   });
 }
+
+export function useAllowResubmission() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiPost<AssignmentSubmission>(`/submissions/${id}/allow-resubmission`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["assignments"] }),
+  });
+}
