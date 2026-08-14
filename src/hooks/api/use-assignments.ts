@@ -1,9 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { apiGetPaginated, apiPatch, apiPost } from "@/lib/api-client";
+import { apiGet, apiGetPaginated, apiPatch, apiPost } from "@/lib/api-client";
 import { createCrudHooks } from "@/hooks/api/create-crud-hooks";
 import type { ListQueryParams } from "@/types/api";
-import type { Assignment, AssignmentInput, AssignmentSubmission, GradeSubmissionInput } from "@/types/records";
+import type {
+  Assignment,
+  AssignmentInput,
+  AssignmentSubmission,
+  GradeSubmissionInput,
+} from "@/types/records";
 
 const assignmentHooks = createCrudHooks<Assignment, AssignmentInput, Partial<AssignmentInput>>("assignments");
 
@@ -29,7 +34,8 @@ function toAssignmentFormData(body: Partial<AssignmentFormInput>) {
 export function useCreateAssignment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: AssignmentFormInput) => apiPost<Assignment>("/assignments", toAssignmentFormData(body)),
+    mutationFn: (body: AssignmentFormInput) =>
+      apiPost<Assignment>("/assignments", toAssignmentFormData(body)),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["assignments"] }),
   });
 }
@@ -46,7 +52,16 @@ export function useUpdateAssignment() {
 export function useAssignmentSubmissions(assignmentId?: string, params?: ListQueryParams) {
   return useQuery({
     queryKey: ["assignments", assignmentId, "submissions", params ?? {}],
-    queryFn: () => apiGetPaginated<AssignmentSubmission>(`/assignments/${assignmentId}/submissions`, { params }),
+    queryFn: () =>
+      apiGetPaginated<AssignmentSubmission>(`/assignments/${assignmentId}/submissions`, { params }),
+    enabled: Boolean(assignmentId),
+  });
+}
+
+export function useMySubmission(assignmentId?: string) {
+  return useQuery({
+    queryKey: ["assignments", assignmentId, "my-submission"],
+    queryFn: () => apiGet<AssignmentSubmission | null>(`/assignments/${assignmentId}/my-submission`),
     enabled: Boolean(assignmentId),
   });
 }
@@ -62,6 +77,7 @@ export function useSubmitAssignment(assignmentId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assignments", assignmentId, "submissions"] });
+      queryClient.invalidateQueries({ queryKey: ["assignments", assignmentId, "my-submission"] });
     },
   });
 }

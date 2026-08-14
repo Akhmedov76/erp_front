@@ -17,6 +17,7 @@ import {
   useAllowResubmission,
   useAssignment,
   useAssignmentSubmissions,
+  useMySubmission,
   useSubmitAssignment,
 } from "@/hooks/api/use-assignments";
 import { ROLES } from "@/lib/constants";
@@ -227,21 +228,30 @@ export default function AssignmentDetailPage() {
 function SubmitAssignmentCard({ assignmentId }: { assignmentId: string }) {
   const [comment, setComment] = useState("");
   const [file, setFile] = useState<File | undefined>();
-  const [submitted, setSubmitted] = useState<AssignmentSubmission | undefined>();
+  const { data: mySubmission, isLoading } = useMySubmission(assignmentId);
   const submitAssignment = useSubmitAssignment(assignmentId);
 
   const handleSubmit = () => {
     submitAssignment.mutate(
       { comment, file },
       {
-        onSuccess: (data) => {
+        onSuccess: () => {
           toast.success("Topshiriq muvaffaqiyatli topshirildi");
-          setSubmitted(data);
+          setComment("");
+          setFile(undefined);
         },
         onError: (error) => toast.error(getErrorMessage(error)),
       },
     );
   };
+
+  if (isLoading) return null;
+
+  const isGraded = mySubmission?.status === "GRADED";
+  // First-time submission, or the teacher explicitly reopened this one — any
+  // other state (submitted, awaiting grading) hides the form so the student
+  // can't accidentally overwrite what's currently being reviewed.
+  const canSubmit = !mySubmission || mySubmission.resubmission_allowed;
 
   return (
     <Card>
@@ -249,24 +259,68 @@ function SubmitAssignmentCard({ assignmentId }: { assignmentId: string }) {
         <CardTitle className="text-base">Topshiriqni yuborish</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {submitted && (
-          <div className="rounded-md border border-success/40 bg-success/10 p-3 text-sm">
-            Siz bu topshiriqni yubordingiz ({formatDateTime(submitted.submitted_at)}). Qayta yuborsangiz,
-            avvalgi javobingiz almashtiriladi.
+        {mySubmission && (
+          <div className="space-y-2 rounded-md border p-3 text-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge status={mySubmission.status} />
+              <span className="text-muted-foreground">
+                Topshirilgan: {formatDateTime(mySubmission.submitted_at)}
+              </span>
+            </div>
+            {mySubmission.comment && (
+              <p className="text-muted-foreground">Izohingiz: "{mySubmission.comment}"</p>
+            )}
+            {mySubmission.file && (
+              <a
+                href={mySubmission.file}
+                target="_blank"
+                rel="noreferrer"
+                className="flex w-fit items-center gap-1 text-primary hover:underline"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                Yuborilgan faylni ko'rish
+              </a>
+            )}
+            {isGraded && (
+              <div className="rounded-md border border-success/40 bg-success/10 p-2">
+                <p className="font-medium">
+                  Bahoyingiz: {mySubmission.score} / {mySubmission.maxScore}
+                </p>
+                {mySubmission.feedback && (
+                  <p className="mt-1 text-muted-foreground">O'qituvchi izohi: "{mySubmission.feedback}"</p>
+                )}
+              </div>
+            )}
+            {mySubmission.resubmission_allowed && (
+              <p className="rounded-md border border-warning/40 bg-warning/10 p-2 text-warning-foreground">
+                O'qituvchingiz sizga qayta topshirishga ruxsat berdi — quyida yangi javobingizni yuboring.
+              </p>
+            )}
           </div>
         )}
-        <Textarea
-          placeholder="Izoh (ixtiyoriy)"
-          rows={3}
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-        />
-        <FileUploadField value={file} onChange={setFile} />
-        <div className="flex justify-end">
-          <Button onClick={handleSubmit} disabled={submitAssignment.isPending}>
-            {submitAssignment.isPending ? <InlineSpinner /> : "Topshirish"}
-          </Button>
-        </div>
+
+        {canSubmit && (
+          <>
+            <Textarea
+              placeholder="Izoh (ixtiyoriy)"
+              rows={3}
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+            />
+            <FileUploadField value={file} onChange={setFile} />
+            <div className="flex justify-end">
+              <Button onClick={handleSubmit} disabled={submitAssignment.isPending}>
+                {submitAssignment.isPending ? (
+                  <InlineSpinner />
+                ) : mySubmission ? (
+                  "Qayta topshirish"
+                ) : (
+                  "Topshirish"
+                )}
+              </Button>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
