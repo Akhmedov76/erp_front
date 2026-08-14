@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { EmptyState } from "@/components/common/empty-state";
+import { FileUploadField } from "@/components/common/file-upload-field";
 import { PageHeader } from "@/components/common/page-header";
 import { PageLoader, InlineSpinner } from "@/components/common/page-loader";
 import { StatusBadge } from "@/components/common/status-badge";
@@ -93,6 +94,7 @@ export default function AssignmentDetailPage() {
           <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
             <AssignmentTypeBadge type={assignment.assignment_type} />
             <span>Muddat: {formatDateTime(assignment.deadline)}</span>
+            <span>Maksimal ball: {assignment.max_score}</span>
             <StatusBadge status={assignment.status} />
             {assignment.attachment && (
               <a
@@ -173,7 +175,7 @@ export default function AssignmentDetailPage() {
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell>{s.score ?? "—"}</TableCell>
+                      <TableCell>{s.score ? `${s.score} / ${s.maxScore}` : "—"}</TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-1">
                           {!s.resubmission_allowed && (
@@ -207,7 +209,9 @@ export default function AssignmentDetailPage() {
         </Card>
       )}
 
-      {canManage && <AssignmentFormDialog open={editOpen} onOpenChange={setEditOpen} assignment={assignment} />}
+      {canManage && (
+        <AssignmentFormDialog open={editOpen} onOpenChange={setEditOpen} assignment={assignment} />
+      )}
       {canManage && (
         <GradeSubmissionDialog
           open={Boolean(gradingSubmission)}
@@ -247,8 +251,8 @@ function SubmitAssignmentCard({ assignmentId }: { assignmentId: string }) {
       <CardContent className="space-y-3">
         {submitted && (
           <div className="rounded-md border border-success/40 bg-success/10 p-3 text-sm">
-            Siz bu topshiriqni yubordingiz ({formatDateTime(submitted.submitted_at)}). Qayta yuborsangiz, avvalgi javobingiz
-            almashtiriladi.
+            Siz bu topshiriqni yubordingiz ({formatDateTime(submitted.submitted_at)}). Qayta yuborsangiz,
+            avvalgi javobingiz almashtiriladi.
           </div>
         )}
         <Textarea
@@ -257,11 +261,7 @@ function SubmitAssignmentCard({ assignmentId }: { assignmentId: string }) {
           value={comment}
           onChange={(e) => setComment(e.target.value)}
         />
-        <input
-          type="file"
-          onChange={(e) => setFile(e.target.files?.[0])}
-          className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium"
-        />
+        <FileUploadField value={file} onChange={setFile} />
         <div className="flex justify-end">
           <Button onClick={handleSubmit} disabled={submitAssignment.isPending}>
             {submitAssignment.isPending ? <InlineSpinner /> : "Topshirish"}

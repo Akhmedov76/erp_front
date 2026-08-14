@@ -62,16 +62,20 @@ export const GRADE_TYPE_OPTIONS = [
   { value: "EXAM", label: "Imtihon" },
   { value: "MIDTERM", label: "Oraliq nazorat" },
   { value: "FINAL", label: "Yakuniy nazorat" },
+  { value: "PROJECT", label: "Loyiha" },
 ];
 
 // Sensible starting point per grade type so a teacher isn't forced to decide
-// a scale from scratch every time — still fully editable per entry.
+// a scale from scratch every time — still fully editable per entry. Keyed by
+// the same strings as AssignmentType (HOMEWORK/QUIZ/EXAM/PROJECT), so this
+// also drives the default Assignment.max_score suggestion.
 export const DEFAULT_MAX_SCORE_BY_GRADE_TYPE: Record<string, string> = {
   HOMEWORK: "10",
   QUIZ: "20",
   EXAM: "100",
   MIDTERM: "100",
   FINAL: "100",
+  PROJECT: "100",
 };
 
 export const SUBMISSION_STATUS_OPTIONS = [
@@ -125,5 +129,48 @@ export const AUDIT_ACTION_OPTIONS = [
   { value: "LOGOUT", label: "Chiqish" },
   { value: "PASSWORD_CHANGE", label: "Parol o'zgartirildi" },
 ];
+
+// Keep in sync with backend/common/validators.py ASSIGNMENT_FILE_EXTENSION_VALIDATOR /
+// ASSIGNMENT_FILE_SIZE_VALIDATOR — the backend is the enforced source of truth
+// (any file that slips past this client-side check still gets rejected with a
+// clear message there); this list only drives the file picker's filter and the
+// upfront hint text so students/teachers see the limits before they upload.
+// "html" is deliberately excluded on the backend (stored-XSS risk — it would be
+// served back from the same origin as the app) — submit HTML/CSS/JS projects as
+// a .zip instead.
+export const ASSIGNMENT_FILE_EXTENSIONS = [
+  "pdf",
+  "doc",
+  "docx",
+  "xls",
+  "xlsx",
+  "ppt",
+  "pptx",
+  "jpg",
+  "jpeg",
+  "png",
+  "zip",
+  "py",
+  "ipynb",
+  "js",
+  "jsx",
+  "ts",
+  "tsx",
+  "css",
+  "json",
+  "sql",
+  "txt",
+  "md",
+  "java",
+  "c",
+  "cpp",
+  "csv",
+] as const;
+
+export const ASSIGNMENT_FILE_MAX_MB = 15;
+
+export const ASSIGNMENT_FILE_ACCEPT = ASSIGNMENT_FILE_EXTENSIONS.map((ext) => `.${ext}`).join(",");
+
+export const ASSIGNMENT_FILE_HINT = `Ruxsat etilgan formatlar: ${ASSIGNMENT_FILE_EXTENSIONS.join(", ")} (maks. ${ASSIGNMENT_FILE_MAX_MB}MB)`;
 
 export const DEFAULT_PAGE_SIZE = 20;

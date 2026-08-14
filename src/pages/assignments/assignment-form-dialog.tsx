@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Paperclip } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -11,15 +10,16 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { FileUploadField } from "@/components/common/file-upload-field";
 import { InlineSpinner } from "@/components/common/page-loader";
 import { useCreateAssignment, useUpdateAssignment } from "@/hooks/api/use-assignments";
 import { useGroups } from "@/hooks/api/use-groups";
 import { useSubjects } from "@/hooks/api/use-subjects";
 import { useTeachers } from "@/hooks/api/use-teachers";
-import { ASSIGNMENT_TYPE_OPTIONS, ROLES } from "@/lib/constants";
+import { ASSIGNMENT_TYPE_OPTIONS, DEFAULT_MAX_SCORE_BY_GRADE_TYPE, ROLES } from "@/lib/constants";
 import { getErrorMessage } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
-import type { Assignment } from "@/types/records";
+import type { Assignment, AssignmentType } from "@/types/records";
 
 const schema = z.object({
   teacher: z.string().min(1, "O'qituvchi tanlanishi shart"),
@@ -31,6 +31,10 @@ const schema = z.object({
     required_error: "Topshiriq turi tanlanishi shart",
   }),
   deadline: z.string().min(1, "Muddat kiritilishi shart"),
+  max_score: z
+    .string()
+    .min(1, "Maksimal ball kiritilishi shart")
+    .refine((v) => Number(v) > 0, "Maksimal ball musbat bo'lishi kerak"),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -55,6 +59,7 @@ export function AssignmentFormDialog({ open, onOpenChange, assignment }: Assignm
   const { data: subjects } = useSubjects({ limit: 100 });
   const { data: teachers } = useTeachers({ limit: 100 });
   const [attachment, setAttachment] = useState<File | undefined>();
+  const [maxScoreTouched, setMaxScoreTouched] = useState(false);
 
   // A teacher only ever has their own groups in this list, so its `teacher`
   // field is always their own id — no separate "who am I" endpoint needed.
@@ -70,12 +75,14 @@ export function AssignmentFormDialog({ open, onOpenChange, assignment }: Assignm
       description: "",
       assignment_type: "HOMEWORK",
       deadline: "",
+      max_score: DEFAULT_MAX_SCORE_BY_GRADE_TYPE.HOMEWORK,
     },
   });
 
   useEffect(() => {
     if (!open) return;
     setAttachment(undefined);
+    setMaxScoreTouched(Boolean(assignment));
     if (assignment) {
       form.reset({
         teacher: assignment.teacher,
@@ -85,6 +92,7 @@ export function AssignmentFormDialog({ open, onOpenChange, assignment }: Assignm
         description: assignment.description,
         assignment_type: assignment.assignment_type,
         deadline: assignment.deadline.slice(0, 16),
+        max_score: assignment.max_score,
       });
     } else {
       form.reset({
@@ -95,9 +103,15 @@ export function AssignmentFormDialog({ open, onOpenChange, assignment }: Assignm
         description: "",
         assignment_type: "HOMEWORK",
         deadline: "",
+        max_score: DEFAULT_MAX_SCORE_BY_GRADE_TYPE.HOMEWORK,
       });
     }
   }, [open, assignment, isTeacher, ownTeacherId, form]);
+
+  const handleAssignmentTypeChange = (value: AssignmentType) => {
+    form.setValue("assignment_type", value);
+    if (!maxScoreTouched) form.setValue("max_score", DEFAULT_MAX_SCORE_BY_GRADE_TYPE[value] ?? "100");
+  };
 
   const isPending = createAssignment.isPending || updateAssignment.isPending;
 
@@ -143,7 +157,7 @@ export function AssignmentFormDialog({ open, onOpenChange, assignment }: Assignm
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Turi</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select value={field.value} onValueChange={handleAssignmentTypeChange}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Turini tanlang" />
@@ -157,6 +171,28 @@ export function AssignmentFormDialog({ open, onOpenChange, assignment }: Assignm
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="max_score"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Maksimal ball</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={0.01}
+                        step="0.01"
+                        {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setMaxScoreTouched(true);
+                        }}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -268,23 +304,11 @@ export function AssignmentFormDialog({ open, onOpenChange, assignment }: Assignm
             />
             <FormItem>
               <FormLabel>Ilova fayl (ixtiyoriy)</FormLabel>
-              <div className="flex items-center gap-2">
-                <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <input
-                  type="file"
-                  onChange={(e) => setAttachment(e.target.files?.[0])}
-                  className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium"
-                />
-              </div>
-              {isEdit && assignment?.attachment && !attachment && (
-                <p className="text-xs text-muted-foreground">
-                  Joriy fayl:{" "}
-                  <a href={assignment.attachment} target="_blank" rel="noreferrer" className="text-primary hover:underline">
-                    ko'rish
-                  </a>{" "}
-                  — yangisini tanlasangiz, u almashtiriladi.
-                </p>
-              )}
+              <FileUploadField
+                value={attachment}
+                onChange={setAttachment}
+                currentFileUrl={isEdit ? assignment?.attachment : undefined}
+              />
             </FormItem>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

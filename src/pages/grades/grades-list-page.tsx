@@ -3,6 +3,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 
 import { PageHeader } from "@/components/common/page-header";
 import { DataTable } from "@/components/data-table/data-table";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGrades } from "@/hooks/api/use-grades";
@@ -32,6 +33,16 @@ function GradesHistory() {
     { accessorKey: "grade_type", header: "Turi" },
     { id: "score", header: "Ball", cell: ({ row }) => `${row.original.score}/${row.original.max_score}` },
     { accessorKey: "comment", header: "Izoh", cell: ({ row }) => row.original.comment || "—" },
+    {
+      id: "source",
+      header: "Manba",
+      cell: ({ row }) =>
+        row.original.fromSubmission ? (
+          <Badge variant="secondary">Topshiriqdan</Badge>
+        ) : (
+          <span className="text-muted-foreground">Qo'lda</span>
+        ),
+    },
   ];
 
   return (

@@ -30,8 +30,14 @@ interface GradeSubmissionDialogProps {
   assignmentType?: AssignmentType;
 }
 
-export function GradeSubmissionDialog({ open, onOpenChange, submission, assignmentType }: GradeSubmissionDialogProps) {
+export function GradeSubmissionDialog({
+  open,
+  onOpenChange,
+  submission,
+  assignmentType,
+}: GradeSubmissionDialogProps) {
   const gradeSubmission = useGradeSubmission();
+  const maxScore = submission?.maxScore ? parseFloat(submission.maxScore) : undefined;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -40,12 +46,19 @@ export function GradeSubmissionDialog({ open, onOpenChange, submission, assignme
 
   useEffect(() => {
     if (open && submission) {
-      form.reset({ score: submission.score ? parseFloat(submission.score) : 0, feedback: submission.feedback ?? "" });
+      form.reset({
+        score: submission.score ? parseFloat(submission.score) : 0,
+        feedback: submission.feedback ?? "",
+      });
     }
   }, [open, submission, form]);
 
   const onSubmit = (values: FormValues) => {
     if (!submission) return;
+    if (maxScore !== undefined && values.score > maxScore) {
+      form.setError("score", { message: `Ball ${maxScore} dan oshmasligi kerak` });
+      return;
+    }
     gradeSubmission.mutate(
       { id: submission.id, body: { score: values.score.toString(), feedback: values.feedback } },
       {
@@ -88,9 +101,9 @@ export function GradeSubmissionDialog({ open, onOpenChange, submission, assignme
               name="score"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Ball</FormLabel>
+                  <FormLabel>Ball{maxScore !== undefined && ` (maks. ${maxScore})`}</FormLabel>
                   <FormControl>
-                    <Input type="number" min={0} step="0.01" {...field} />
+                    <Input type="number" min={0} max={maxScore} step="0.01" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

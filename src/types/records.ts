@@ -29,7 +29,7 @@ export interface BulkAttendanceInput {
   students: Array<{ studentId: string; status: AttendanceStatus; note?: string }>;
 }
 
-export type GradeType = "HOMEWORK" | "QUIZ" | "EXAM" | "MIDTERM" | "FINAL";
+export type GradeType = "HOMEWORK" | "QUIZ" | "EXAM" | "MIDTERM" | "FINAL" | "PROJECT";
 
 export interface Grade {
   id: string;
@@ -44,6 +44,11 @@ export interface Grade {
   grade_type: GradeType;
   comment: string;
   date: string;
+  // True when this row was auto-synced from a graded assignment submission
+  // (see backend GradeSubmissionSerializer) — such rows can't be edited or
+  // deleted here; grade them from the Assignments section instead.
+  fromSubmission: boolean;
+  submissionId: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -86,6 +91,7 @@ export interface Assignment {
   description: string;
   assignment_type: AssignmentType;
   deadline: string;
+  max_score: string;
   attachment: string | null;
   status: GenericStatus;
   created_at: string;
@@ -100,6 +106,7 @@ export interface AssignmentInput {
   description?: string;
   assignment_type: AssignmentType;
   deadline: string;
+  max_score: string;
   status?: GenericStatus;
 }
 
@@ -113,6 +120,7 @@ export interface AssignmentSubmission {
   file: string | null;
   comment: string;
   score: string | null;
+  maxScore: string | null;
   feedback: string;
   status: SubmissionStatus;
   submitted_at: string | null;
