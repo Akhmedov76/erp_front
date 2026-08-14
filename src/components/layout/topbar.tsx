@@ -18,12 +18,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useLogout } from "@/hooks/api/use-auth";
-import { useUnreadNotifications } from "@/hooks/api/use-notifications";
+import { useMarkNotificationRead, useUnreadNotifications } from "@/hooks/api/use-notifications";
 import { ROLE_LABELS } from "@/lib/constants";
 import { resolveTheme } from "@/lib/theme";
-import { formatDateTime, initials } from "@/lib/utils";
+import { formatDateTime, getNotificationLink, initials } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { useThemeStore, type Theme } from "@/stores/theme-store";
+import type { AppNotification } from "@/types/system";
 
 const THEME_OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
   { value: "light", label: "Kunduzgi", icon: Sun },
@@ -66,11 +67,18 @@ export function Topbar() {
   const navigate = useNavigate();
   const { data: unread } = useUnreadNotifications();
   const unreadCount = unread?.meta?.total ?? 0;
+  const markRead = useMarkNotificationRead();
 
   const handleLogout = () => {
     logout.mutate(undefined, {
       onSuccess: () => navigate("/login", { replace: true }),
     });
+  };
+
+  const handleOpenNotification = (notification: AppNotification) => {
+    markRead.mutate(notification.id);
+    const link = getNotificationLink(notification);
+    if (link) navigate(link);
   };
 
   return (
@@ -110,7 +118,11 @@ export function Topbar() {
             <p className="px-2 py-4 text-center text-sm text-muted-foreground">Yangi bildirishnoma yo'q</p>
           )}
           {unread?.items.map((n) => (
-            <DropdownMenuItem key={n.id} className="flex flex-col items-start gap-0.5 whitespace-normal">
+            <DropdownMenuItem
+              key={n.id}
+              onClick={() => handleOpenNotification(n)}
+              className="flex flex-col items-start gap-0.5 whitespace-normal"
+            >
               <span className="text-sm font-medium">{n.title}</span>
               <span className="text-xs text-muted-foreground">{n.message}</span>
               <span className="text-[10px] text-muted-foreground">{formatDateTime(n.created_at)}</span>

@@ -1,8 +1,34 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+import type { AppNotification } from "@/types/system";
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+/** Where clicking a notification should take you — mirrors the backend's
+ * (type, entity_id) contract documented in API_DOCUMENTATION.md "Notification
+ * object shape". Falls back to that section's list page when there's no
+ * per-record detail route (Grades/Payments/Attendance), or to null when
+ * there's nowhere sensible to go. */
+export function getNotificationLink(notification: AppNotification): string | null {
+  switch (notification.type) {
+    case "ASSIGNMENT":
+      return notification.entity_id ? `/assignments/${notification.entity_id}` : "/assignments";
+    case "GRADE":
+      return "/grades";
+    case "PAYMENT":
+      return "/payments";
+    case "ATTENDANCE":
+      return "/attendance";
+    case "SCHEDULE":
+      return "/schedules";
+    case "SYSTEM":
+      return notification.entity_id ? `/groups/${notification.entity_id}` : null;
+    default:
+      return null;
+  }
 }
 
 export function formatDate(value?: string | null): string {
@@ -43,8 +69,11 @@ export function initials(name: string): string {
 
 export function getErrorMessage(error: unknown): string {
   if (error && typeof error === "object" && "response" in error) {
-    const response = (error as { response?: { data?: { message?: string; errors?: Array<{ field: string; message: string }> } } })
-      .response;
+    const response = (
+      error as {
+        response?: { data?: { message?: string; errors?: Array<{ field: string; message: string }> } };
+      }
+    ).response;
     if (response?.data?.errors?.length) {
       return response.data.errors.map((e) => e.message).join(" ");
     }

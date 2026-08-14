@@ -5,6 +5,10 @@ export interface AppNotification {
   title: string;
   message: string;
   type: NotificationType;
+  // Meaning depends on `type` — an Assignment id for ASSIGNMENT, a Group id
+  // for SYSTEM, etc. (see backend API_DOCUMENTATION.md "Notification object
+  // shape"). Null when no single record applies.
+  entity_id: string | null;
   is_read: boolean;
   created_at: string;
   read_at: string | null;
