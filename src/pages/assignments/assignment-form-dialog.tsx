@@ -22,7 +22,7 @@ import { useGroups } from "@/hooks/api/use-groups";
 import { useSubjects } from "@/hooks/api/use-subjects";
 import { useTeachers } from "@/hooks/api/use-teachers";
 import { ASSIGNMENT_TYPE_OPTIONS, DEFAULT_MAX_SCORE_BY_GRADE_TYPE, ROLES } from "@/lib/constants";
-import { getErrorMessage } from "@/lib/utils";
+import { getAttachmentDownloadUrl, getErrorMessage } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import type { Assignment, AssignmentType } from "@/types/records";
 
@@ -324,9 +324,7 @@ export function AssignmentFormDialog({ open, onOpenChange, assignment }: Assignm
                       className="flex items-center justify-between gap-2 rounded-md border px-2.5 py-1.5 text-sm"
                     >
                       <a
-                        href={file.file}
-                        target="_blank"
-                        rel="noreferrer"
+                        href={getAttachmentDownloadUrl(file.id)}
                         className="flex min-w-0 items-center gap-1.5 text-primary hover:underline"
                       >
                         <FileText className="h-3.5 w-3.5 shrink-0" />

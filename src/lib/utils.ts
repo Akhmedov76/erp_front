@@ -7,6 +7,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** The raw media URL (assignment.attachments[].file) opens inline in the
+ * browser for PDFs/images instead of downloading, and cross-origin <a
+ * download> is ignored by browsers — so link to this backend endpoint
+ * instead, which sets Content-Disposition: attachment on the response
+ * itself (works regardless of origin or file type). */
+export function getAttachmentDownloadUrl(attachmentId: string): string {
+  return `${import.meta.env.VITE_API_BASE_URL}/assignment-attachments/${attachmentId}/download`;
+}
+
 /** Where clicking a notification should take you — mirrors the backend's
  * (type, entity_id) contract documented in API_DOCUMENTATION.md "Notification
  * object shape". Falls back to that section's list page when there's no

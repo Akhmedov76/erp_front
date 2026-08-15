@@ -21,7 +21,7 @@ import {
   useSubmitAssignment,
 } from "@/hooks/api/use-assignments";
 import { ROLES } from "@/lib/constants";
-import { formatDateTime, getErrorMessage } from "@/lib/utils";
+import { formatDateTime, getAttachmentDownloadUrl, getErrorMessage } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import type { AssignmentSubmission } from "@/types/records";
 import { AssignmentFormDialog } from "@/pages/assignments/assignment-form-dialog";
@@ -103,9 +103,7 @@ export default function AssignmentDetailPage() {
               {assignment.attachments.map((file, i) => (
                 <a
                   key={file.id}
-                  href={file.file}
-                  target="_blank"
-                  rel="noreferrer"
+                  href={getAttachmentDownloadUrl(file.id)}
                   className="flex items-center gap-1 text-primary hover:underline"
                 >
                   <Paperclip className="h-3.5 w-3.5" />
