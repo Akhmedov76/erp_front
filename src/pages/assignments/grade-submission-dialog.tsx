@@ -80,16 +80,21 @@ export function GradeSubmissionDialog({
             {assignmentType && <AssignmentTypeBadge type={assignmentType} />}
           </DialogTitle>
         </DialogHeader>
-        {submission?.file && (
-          <a
-            href={submission.file}
-            target="_blank"
-            rel="noreferrer"
-            className="flex w-fit items-center gap-1.5 rounded-md border px-3 py-2 text-sm text-primary hover:underline"
-          >
-            <FileText className="h-4 w-4" />
-            Topshirilgan faylni ko'rish
-          </a>
+        {submission && submission.files.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {submission.files.map((f, i) => (
+              <a
+                key={f.id}
+                href={f.file}
+                target="_blank"
+                rel="noreferrer"
+                className="flex w-fit items-center gap-1.5 rounded-md border px-3 py-2 text-sm text-primary hover:underline"
+              >
+                <FileText className="h-4 w-4" />
+                {submission.files.length > 1 ? `Fayl ${i + 1}` : "Topshirilgan faylni ko'rish"}
+              </a>
+            ))}
+          </div>
         )}
         {submission?.comment && (
           <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">"{submission.comment}"</p>

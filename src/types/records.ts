@@ -79,6 +79,12 @@ export type GenericStatus = "ACTIVE" | "INACTIVE";
 
 export type AssignmentType = "HOMEWORK" | "QUIZ" | "EXAM" | "PROJECT";
 
+export interface AssignmentAttachment {
+  id: string;
+  file: string;
+  created_at: string;
+}
+
 export interface Assignment {
   id: string;
   teacher: string;
@@ -92,7 +98,7 @@ export interface Assignment {
   assignment_type: AssignmentType;
   deadline: string;
   max_score: string;
-  attachment: string | null;
+  attachments: AssignmentAttachment[];
   status: GenericStatus;
   created_at: string;
   updated_at: string;
@@ -112,12 +118,18 @@ export interface AssignmentInput {
 
 export type SubmissionStatus = "PENDING" | "SUBMITTED" | "LATE" | "GRADED";
 
+export interface AssignmentSubmissionFile {
+  id: string;
+  file: string;
+  created_at: string;
+}
+
 export interface AssignmentSubmission {
   id: string;
   assignment: string;
   student: string;
   studentName: string;
-  file: string | null;
+  files: AssignmentSubmissionFile[];
   comment: string;
   score: string | null;
   maxScore: string | null;

@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { EmptyState } from "@/components/common/empty-state";
-import { FileUploadField } from "@/components/common/file-upload-field";
+import { MultiFileUploadField } from "@/components/common/multi-file-upload-field";
 import { PageHeader } from "@/components/common/page-header";
 import { PageLoader, InlineSpinner } from "@/components/common/page-loader";
 import { StatusBadge } from "@/components/common/status-badge";
@@ -97,18 +97,23 @@ export default function AssignmentDetailPage() {
             <span>Muddat: {formatDateTime(assignment.deadline)}</span>
             <span>Maksimal ball: {assignment.max_score}</span>
             <StatusBadge status={assignment.status} />
-            {assignment.attachment && (
-              <a
-                href={assignment.attachment}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-1 text-primary hover:underline"
-              >
-                <Paperclip className="h-3.5 w-3.5" />
-                Ilova
-              </a>
-            )}
           </div>
+          {assignment.attachments.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3">
+              {assignment.attachments.map((file, i) => (
+                <a
+                  key={file.id}
+                  href={file.file}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1 text-primary hover:underline"
+                >
+                  <Paperclip className="h-3.5 w-3.5" />
+                  Ilova {assignment.attachments.length > 1 ? i + 1 : ""}
+                </a>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -161,17 +166,23 @@ export default function AssignmentDetailPage() {
                       </TableCell>
                       <TableCell>{s.submitted_at ? formatDateTime(s.submitted_at) : "—"}</TableCell>
                       <TableCell>
-                        {s.file ? (
-                          <a
-                            href={s.file}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center gap-1 text-primary hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <FileText className="h-3.5 w-3.5" />
-                            Ko'rish
-                          </a>
+                        {s.files.length ? (
+                          <div className="flex flex-wrap items-center gap-2">
+                            {s.files.map((f, i) => (
+                              <a
+                                key={f.id}
+                                href={f.file}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center gap-1 text-primary hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                                title={f.file.split("/").pop()}
+                              >
+                                <FileText className="h-3.5 w-3.5" />
+                                {i + 1}
+                              </a>
+                            ))}
+                          </div>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
@@ -227,18 +238,18 @@ export default function AssignmentDetailPage() {
 
 function SubmitAssignmentCard({ assignmentId }: { assignmentId: string }) {
   const [comment, setComment] = useState("");
-  const [file, setFile] = useState<File | undefined>();
+  const [files, setFiles] = useState<File[]>([]);
   const { data: mySubmission, isLoading } = useMySubmission(assignmentId);
   const submitAssignment = useSubmitAssignment(assignmentId);
 
   const handleSubmit = () => {
     submitAssignment.mutate(
-      { comment, file },
+      { comment, files },
       {
         onSuccess: () => {
           toast.success("Topshiriq muvaffaqiyatli topshirildi");
           setComment("");
-          setFile(undefined);
+          setFiles([]);
         },
         onError: (error) => toast.error(getErrorMessage(error)),
       },
@@ -270,16 +281,21 @@ function SubmitAssignmentCard({ assignmentId }: { assignmentId: string }) {
             {mySubmission.comment && (
               <p className="text-muted-foreground">Izohingiz: "{mySubmission.comment}"</p>
             )}
-            {mySubmission.file && (
-              <a
-                href={mySubmission.file}
-                target="_blank"
-                rel="noreferrer"
-                className="flex w-fit items-center gap-1 text-primary hover:underline"
-              >
-                <FileText className="h-3.5 w-3.5" />
-                Yuborilgan faylni ko'rish
-              </a>
+            {mySubmission.files.length > 0 && (
+              <div className="flex flex-wrap gap-3">
+                {mySubmission.files.map((f, i) => (
+                  <a
+                    key={f.id}
+                    href={f.file}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex w-fit items-center gap-1 text-primary hover:underline"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    Fayl {mySubmission.files.length > 1 ? i + 1 : ""}
+                  </a>
+                ))}
+              </div>
             )}
             {isGraded && (
               <div className="rounded-md border border-success/40 bg-success/10 p-2">
@@ -307,7 +323,7 @@ function SubmitAssignmentCard({ assignmentId }: { assignmentId: string }) {
               value={comment}
               onChange={(e) => setComment(e.target.value)}
             />
-            <FileUploadField value={file} onChange={setFile} />
+            <MultiFileUploadField value={files} onChange={setFiles} />
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={submitAssignment.isPending}>
                 {submitAssignment.isPending ? (

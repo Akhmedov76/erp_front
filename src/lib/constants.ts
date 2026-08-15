@@ -173,4 +173,7 @@ export const ASSIGNMENT_FILE_ACCEPT = ASSIGNMENT_FILE_EXTENSIONS.map((ext) => `.
 
 export const ASSIGNMENT_FILE_HINT = `Ruxsat etilgan formatlar: ${ASSIGNMENT_FILE_EXTENSIONS.join(", ")} (maks. ${ASSIGNMENT_FILE_MAX_MB}MB)`;
 
+// Keep in sync with backend/apps/assignments/serializers.py MAX_FILES_PER_REQUEST.
+export const MAX_FILES_PER_UPLOAD = 10;
+
 export const DEFAULT_PAGE_SIZE = 20;

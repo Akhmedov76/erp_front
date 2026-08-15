@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { apiGet, apiGetPaginated, apiPatch, apiPost } from "@/lib/api-client";
+import { apiDelete, apiGet, apiGetPaginated, apiPatch, apiPost } from "@/lib/api-client";
 import { createCrudHooks } from "@/hooks/api/create-crud-hooks";
 import type { ListQueryParams } from "@/types/api";
 import type {
@@ -16,19 +16,30 @@ export const useAssignments = assignmentHooks.useList;
 export const useAssignment = assignmentHooks.useDetail;
 export const useDeleteAssignment = assignmentHooks.useRemove;
 
-export type AssignmentFormInput = AssignmentInput & { attachment?: File | null };
+export type AssignmentFormInput = AssignmentInput & { attachments?: File[] };
 
 /** Always submits as multipart/form-data — DRF's MultiPartParser handles the
- * plain fields fine, and it lets us attach a file in the same request
- * without branching the request shape. */
+ * plain fields fine, and it lets us attach files in the same request
+ * without branching the request shape. Multiple files share the same
+ * "attachments" field name, which is how request.FILES.getlist() on the
+ * backend collects them. New attachments are additive (see
+ * useRemoveAssignmentAttachment for removing one). */
 function toAssignmentFormData(body: Partial<AssignmentFormInput>) {
   const formData = new FormData();
   Object.entries(body).forEach(([key, value]) => {
-    if (key === "attachment") return;
+    if (key === "attachments") return;
     if (value !== undefined && value !== null) formData.append(key, String(value));
   });
-  if (body.attachment) formData.append("attachment", body.attachment);
+  body.attachments?.forEach((file) => formData.append("attachments", file));
   return formData;
+}
+
+export function useRemoveAssignmentAttachment(assignmentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (attachmentId: string) => apiDelete(`/assignments/${assignmentId}/attachments/${attachmentId}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["assignments"] }),
+  });
 }
 
 export function useCreateAssignment() {
@@ -69,10 +80,10 @@ export function useMySubmission(assignmentId?: string) {
 export function useSubmitAssignment(assignmentId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: { comment?: string; file?: File }) => {
+    mutationFn: (body: { comment?: string; files?: File[] }) => {
       const formData = new FormData();
       if (body.comment) formData.append("comment", body.comment);
-      if (body.file) formData.append("file", body.file);
+      body.files?.forEach((file) => formData.append("files", file));
       return apiPost<AssignmentSubmission>(`/assignments/${assignmentId}/submit`, formData);
     },
     onSuccess: () => {

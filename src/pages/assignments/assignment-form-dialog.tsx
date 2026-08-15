@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { FileText, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -10,9 +11,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { FileUploadField } from "@/components/common/file-upload-field";
+import { MultiFileUploadField } from "@/components/common/multi-file-upload-field";
 import { InlineSpinner } from "@/components/common/page-loader";
-import { useCreateAssignment, useUpdateAssignment } from "@/hooks/api/use-assignments";
+import {
+  useCreateAssignment,
+  useRemoveAssignmentAttachment,
+  useUpdateAssignment,
+} from "@/hooks/api/use-assignments";
 import { useGroups } from "@/hooks/api/use-groups";
 import { useSubjects } from "@/hooks/api/use-subjects";
 import { useTeachers } from "@/hooks/api/use-teachers";
@@ -52,13 +57,14 @@ export function AssignmentFormDialog({ open, onOpenChange, assignment }: Assignm
 
   const createAssignment = useCreateAssignment();
   const updateAssignment = useUpdateAssignment();
+  const removeAttachment = useRemoveAssignmentAttachment(assignment?.id ?? "");
   // Groups are already scoped to "my groups" by the backend for a TEACHER,
   // so this list — and therefore the subject/deadline picking below — never
   // shows another teacher's data in the first place.
   const { data: groups } = useGroups({ limit: 100 });
   const { data: subjects } = useSubjects({ limit: 100 });
   const { data: teachers } = useTeachers({ limit: 100 });
-  const [attachment, setAttachment] = useState<File | undefined>();
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [maxScoreTouched, setMaxScoreTouched] = useState(false);
 
   // A teacher only ever has their own groups in this list, so its `teacher`
@@ -81,7 +87,7 @@ export function AssignmentFormDialog({ open, onOpenChange, assignment }: Assignm
 
   useEffect(() => {
     if (!open) return;
-    setAttachment(undefined);
+    setAttachments([]);
     setMaxScoreTouched(Boolean(assignment));
     if (assignment) {
       form.reset({
@@ -116,7 +122,7 @@ export function AssignmentFormDialog({ open, onOpenChange, assignment }: Assignm
   const isPending = createAssignment.isPending || updateAssignment.isPending;
 
   const onSubmit = (values: FormValues) => {
-    const payload = { ...values, deadline: new Date(values.deadline).toISOString(), attachment };
+    const payload = { ...values, deadline: new Date(values.deadline).toISOString(), attachments };
     const mutation = isEdit
       ? updateAssignment.mutateAsync({ id: assignment!.id, body: payload })
       : createAssignment.mutateAsync(payload);
@@ -127,6 +133,12 @@ export function AssignmentFormDialog({ open, onOpenChange, assignment }: Assignm
         onOpenChange(false);
       })
       .catch((error) => toast.error(getErrorMessage(error)));
+  };
+
+  const handleRemoveExistingAttachment = (attachmentId: string) => {
+    removeAttachment.mutate(attachmentId, {
+      onError: (error) => toast.error(getErrorMessage(error)),
+    });
   };
 
   return (
@@ -303,12 +315,38 @@ export function AssignmentFormDialog({ open, onOpenChange, assignment }: Assignm
               )}
             />
             <FormItem>
-              <FormLabel>Ilova fayl (ixtiyoriy)</FormLabel>
-              <FileUploadField
-                value={attachment}
-                onChange={setAttachment}
-                currentFileUrl={isEdit ? assignment?.attachment : undefined}
-              />
+              <FormLabel>Ilova fayllar (ixtiyoriy)</FormLabel>
+              {isEdit && assignment && assignment.attachments.length > 0 && (
+                <ul className="space-y-1">
+                  {assignment.attachments.map((file) => (
+                    <li
+                      key={file.id}
+                      className="flex items-center justify-between gap-2 rounded-md border px-2.5 py-1.5 text-sm"
+                    >
+                      <a
+                        href={file.file}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex min-w-0 items-center gap-1.5 text-primary hover:underline"
+                      >
+                        <FileText className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{file.file.split("/").pop()}</span>
+                      </a>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 shrink-0"
+                        disabled={removeAttachment.isPending}
+                        onClick={() => handleRemoveExistingAttachment(file.id)}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <MultiFileUploadField value={attachments} onChange={setAttachments} />
             </FormItem>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
